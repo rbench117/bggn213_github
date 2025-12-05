@@ -11,7 +11,7 @@ Class work for bioinformatics class [BGGN213 at UC San Diego](https://rbench117.
 - Class 08: [Unupervised learning mini-project]()
 - Class 09: [Structural Bioinformatics (Focus on new AlphaFold2)]()
 - Class 10: [Halloween Candy Mini-Project]()
-- Class 11: [Structure prediction with AlphaFold2 (Structural Bioinformatics pt2.)]()
+- Class 11: [Structure prediction with AlphaFold2 (Structural Bioinformatics pt2.)](class11/class11.md)
 - Class 12: [Transcriptomics and the analysis of RNA-Seq data]()
 - Class 13: [RNA-Seq analysis mini-project]()
 - Class 14: [Hands-on with Git and GitHub]()
