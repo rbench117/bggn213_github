@@ -7,5 +7,5 @@ Class work for bioinformatics class [BGGN213 at UC San Diego](https://rbench117.
 - Class 04: [R fundamentals]()
 - Class 05: [Data Viz with ggplot]()
 - Class 06: [Writing R functions]()
-- Class 07: [Machine learnig for Bioinformatics 1]()
+- Class 07: [Machine learnig for Bioinformatics 1](https://github.com/rbench117/bggn213_github/blob/main/Class07/class07.md)
 - Class 08: [Unupervised learning mini-project]()
