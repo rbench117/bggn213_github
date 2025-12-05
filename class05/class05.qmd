@@ -1,7 +1,7 @@
 ---
 title: "class05: data viz with ggplot"
 author: "Ryan Bench (PID:A69038034)"
-format: pdf
+format: gfm
 ---
 
 Today we are playing with plotting and graphics in R.

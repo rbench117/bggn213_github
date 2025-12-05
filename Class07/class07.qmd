@@ -1,0 +1,439 @@
+---
+title: "Class07: Machine Learning"
+author: "Ryan Bench (PID:A69038034)"
+format: pdf
+---
+
+Today we will begin our exploration of some "classical" machine learning approaches. We will start with clustering:
+
+
+Let's first make up some data to cluster where we know what the answer should be.
+
+
+There is only 1 required function with rnorm, "n"
+```{r}
+hist(rnorm(1000))
+```
+can merge these two norms together by turning them into a vector with c
+```{r}
+x <- c(rnorm(30, mean=-3), rnorm(30, mean=3))
+y <- rev(x)
+
+x <- cbind(x, y)
+head(x)
+```
+
+A peak at x with `plot()`
+
+```{r}
+plot(x)
+```
+The main function in "base" R for k-means clustering is called `kmeans()`.
+
+```{r}
+k <- kmeans(x, centers = 4)
+```
+> Q. How big are the clusters (i.e. their size)?
+
+```{r}
+k$size
+```
+>Q. What clusters do my data points reside in?
+
+```{r}
+g <- k$cluster
+```
+
+>Q. Can you make a plot of our data colored by cluster assignment - i.e. Make a result figure
+
+```{r}
+plot(x, col = c(g))
+points(k$centers, col = "blue", pch = 15)
+```
+
+>Q. Cluster with k-means into 4 clusters and plot your results as above
+
+```{r}
+k4 <- kmeans(x, centers = 4)
+plot(x, col = c(g))
+points(k4$centers, centers = 4, col = "blue", pch = 15)
+```
+
+
+>Q. Run kmeans with center (i.e. values of k) equal 1 to 6
+
+```{r}
+k1 <- kmeans(x, centers = 1)$tot.withinss
+k2 <- kmeans(x, centers = 2)$tot.withinss
+k3 <- kmeans(x, centers = 3)$tot.withinss
+k4 <- kmeans(x, centers = 4)$tot.withinss
+k5 <- kmeans(x, centers = 5)$tot.withinss
+k6 <- kmeans(x, centers = 6)$tot.withinss
+k7 <- kmeans(x, centers = 7)$tot.withinss
+
+c(k1, k2, k3, k4, k5, k6, k7)
+```
+Or use a for loop
+
+```{r}
+ans <- NULL
+for(i in 1:6) {
+  ans <- c(ans, kmeans(x, centers=i)$tot.withinss)
+}
+ans
+```
+
+```{r}
+plot(ans, typ = "b")
+```
+
+##Hierarchical Clustering
+
+The main function in "base" R for this is called `hclust()`
+
+```{r}
+d <- dist(x)
+hc <- hclust(d)
+hc
+```
+
+```{r}
+plot(hc)
+abline(h=7, col = "red")
+```
+
+To obtain clusters from our `hclust` result object **hc** we "cut" the tree to yield different sub branches. For this use the `cutree()` function
+
+```{r}
+grps <- cutree(hc, h=7)
+grps
+```
+
+
+Results figure
+
+```{r}
+plot(x, col=grps)
+```
+
+```{r}
+library(pheatmap)
+pheatmap(x)
+```
+
+##Principal Component Analysis (PCA)
+
+```{r}
+url <- "https://tinyurl.com/UK-foods"
+x <- read.csv(url)
+nrow(x)
+ncol(x)
+```
+
+>Q1. How many rows and columns are in your new data frame named x? What R functions could you use to answer this questions?
+
+There are 17 rows and 5 columns in this data frame. I used nrow() and ncol()
+
+```{r}
+head(x)
+```
+
+```{r}
+# Note how the minus indexing works
+rownames(x) <- x[,1]
+x <- x[,-1]
+head(x)
+```
+
+```{r}
+dim(x)
+```
+
+```{r}
+x <- read.csv(url, row.names=1)
+head(x)
+```
+
+
+>Q2. Which approach to solving the ‘row-names problem’ mentioned above do you prefer and why? Is one approach more robust than another under certain circumstances?
+
+The second method shown above is more robust. Each time you run the code for the first method, a column gets subtracted, which is not ideal.
+
+###Spotting major differences and trends
+
+```{r}
+# Using base R
+barplot(as.matrix(x), beside=T, col=rainbow(nrow(x)))
+```
+
+>Q3: Changing what optional argument in the above barplot() function results in the following plot?
+
+Changing the beside argument to false or taking it away will result in the different plot.
+
+
+```{r}
+library(tidyr)
+x_long <- x |> 
+          tibble::rownames_to_column("Food") |> 
+          pivot_longer(cols = -Food, 
+                       names_to = "Country", 
+                       values_to = "Consumption")
+
+dim(x_long)
+```
+
+
+```{r}
+library(ggplot2)
+ggplot(x_long) +
+  aes(x = Country, y = Consumption, fill = Food) +
+  geom_col(position = "dodge") +
+  theme_bw()
+```
+
+
+>Q4: Changing what optional argument in the above ggplot() code results in a stacked barplot figure?
+
+Deleting the position = "dodge" argument results in a stacked barplot.
+
+>Q5: We can use the pairs() function to generate all pairwise plots for our countries. Can you make sense of the following code and resulting figure? What does it mean if a given point lies on the diagonal for a given plot?
+
+Yes, when a country is listed, when looking at it from the row orientation, the country is listed on the y axis, but when looking at them through the column orientation, that is their x axis. When a point is on the diagonal for a given plot, it means that there is a positive correlation between the countries being compared and their consumption patterns for that food.
+
+```{r}
+pairs(x, col=rainbow(nrow(x)), pch=16)
+```
+
+
+
+```{r}
+library(pheatmap)
+
+pheatmap( as.matrix(x) )
+```
+
+>Q6. Based on the pairs and heatmap figures, which countries cluster together and what does this suggest about their food consumption patterns? Can you easily tell what the main differences between N. Ireland and the other countries of the UK in terms of this data-set?
+
+It looks like Wales and England are quite similar in their consumption of these foods. It is still quite difficult to tell what is going on in the dataset.
+
+##PCA to the rescue
+
+The main function in "base" R for PCA is called `prcomp()`.
+
+As we want to do PCA on the food data for the different countries we will want the foods in columns
+```{r}
+pca <- prcomp( t(x) )
+summary(pca)
+```
+
+Our result object is called `pca` and it has a `$x` component that we will look at first
+
+```{r}
+pca$x
+```
+
+```{r}
+library(ggplot2)
+cols <- c("orange", "red", "blue", "darkgreen")
+# Create a data frame for plotting
+df <- as.data.frame(pca$x)
+df$Country <- rownames(df)
+
+# Plot PC1 vs PC2 with ggplot
+ggplot(pca$x) +
+  aes(x = PC1, y = PC2, label = rownames(pca$x), color = "cols") +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5) +
+  xlim(-270, 500) +
+  xlab("PC1") +
+  ylab("PC2") +
+  theme_bw()
+```
+
+Another major result out of PCA is the so-called "variable loadings" pr `$rotation` that tells us how the original variables (foods) contribute to PCs (i.e. our new axis). 
+
+```{r}
+pca$rotation
+```
+
+```{r}
+ggplot(pca$rotation) + aes(PC1, rownames(pca$rotation)) + geom_col()
+```
+
+```{r}
+pca <- prcomp( t(x) )
+summary(pca)
+```
+
+>Q7. Complete the code below to generate a plot of PC1 vs PC2. The second line adds text labels over the data points.
+
+```{r}
+# Create a data frame for plotting
+df <- as.data.frame(pca$x)
+df$Country <- rownames(df)
+country_colors <- c(
+  "England" = "orange",
+  "Scotland" = "blue",
+  "Wales" = "red",
+  "Ireland" = "darkgreen")
+# Plot PC1 vs PC2 with ggplot
+ggplot(pca$x) +
+  aes(x = PC1, y = PC2, color = country_colors, label = rownames(pca$x)) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5) +
+  xlim(-270, 500) +
+  xlab("PC1") +
+  ylab("PC2") +
+  theme_bw()
+```
+>Q8. Customize your plot so that the colors of the country names match the colors in our UK and Ireland map and table at start of this document.
+
+I could not get the right colors to appear for the right country for some reason!
+
+```{r}
+v <- round( pca$sdev^2/sum(pca$sdev^2) * 100 )
+v
+```
+
+```{r}
+z <- summary(pca)
+z$importance
+```
+
+```{r}
+variance_df <- data.frame(
+  PC = factor(paste0("PC", 1:length(v)), levels = paste0("PC", 1:length(v))),
+  Variance = v
+)
+
+ggplot(variance_df) +
+  aes(x = PC, y = Variance) +
+  geom_col(fill = "steelblue") +
+  xlab("Principal Component") +
+  ylab("Percent Variation") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 0))
+```
+
+```{r}
+ggplot(pca$rotation) +
+  aes(x = PC1, 
+      y = reorder(rownames(pca$rotation), PC1)) +
+  geom_col(fill = "steelblue") +
+  xlab("PC1 Loading Score") +
+  ylab("") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 9))
+```
+
+```{r}
+ggplot(pca$rotation) +
+  aes(x = PC2, 
+      y = reorder(rownames(pca$rotation), PC1)) +
+  geom_col(fill = "steelblue") +
+  xlab("PC2 Loading Score") +
+  ylab("") +
+  theme_bw() +
+  theme(axis.text.y = element_text(size = 9))
+```
+
+>Q9: Generate a similar ‘loadings plot’ for PC2. What two food groups feature prominantely and what does PC2 maninly tell us about?
+
+Fresh potatoes and soft drinks are predominantly featured in PC2. This means that PC2 will tell us mainly about diets low in fresh potatoes and high in soft drinks. 
+
+```{r}
+url2 <- "https://tinyurl.com/expression-CSV"
+rna.data <- read.csv(url2, row.names=1)
+head(rna.data)
+```
+
+>Q9: How many genes and samples are in this data set?
+
+There are 100 genes and 10 samples.
+
+```{r}
+pca <- prcomp(t(rna.data), scale=TRUE)
+
+# Create data frame for plotting
+df <- as.data.frame(pca$x)
+df$Sample <- rownames(df)
+
+## Plot with ggplot
+ggplot(df) +
+  aes(x = PC1, y = PC2, label = Sample) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5, size = 3) +
+  xlab("PC1") +
+  ylab("PC2") +
+  theme_bw()
+```
+
+```{r}
+summary(pca)
+```
+
+```{r}
+pca.var <- pca$sdev^2
+pca.var.per <- round(pca.var/sum(pca.var)*100, 1)
+
+# Create scree plot data
+scree_df <- data.frame(
+  PC = factor(paste0("PC", 1:10), levels = paste0("PC", 1:10)),
+  Variance = pca.var[1:10]
+)
+
+ggplot(scree_df) +
+  aes(x = PC, y = Variance) +
+  geom_col(fill = "steelblue") +
+  ggtitle("Quick scree plot") +
+  xlab("Principal Component") +
+  ylab("Variance") +
+  theme_bw()
+```
+
+```{r}
+pca.var.per
+```
+
+```{r}
+scree_pct_df <- data.frame(
+  PC = factor(paste0("PC", 1:10), levels = paste0("PC", 1:10)),
+  PercentVariation = pca.var.per[1:10]
+)
+
+ggplot(scree_pct_df) +
+  aes(x = PC, y = PercentVariation) +
+  geom_col(fill = "steelblue") +
+  ggtitle("Scree Plot") +
+  xlab("Principal Component") +
+  ylab("Percent Variation") +
+  theme_bw()
+```
+
+```{r}
+colvec <- colnames(rna.data)
+colvec[grep("wt", colvec)] <- "red"
+colvec[grep("ko", colvec)] <- "blue"
+
+# Add condition to data frame
+df$condition <- substr(df$Sample, 1, 2)
+df$color <- colvec
+
+ggplot(df) +
+  aes(x = PC1, y = PC2, color = color, label = Sample) +
+  geom_point(size = 3) +
+  geom_text(vjust = -0.5, hjust = 0.5, show.legend = FALSE) +
+  scale_color_identity() +
+  xlab(paste0("PC1 (", pca.var.per[1], "%)")) +
+  ylab(paste0("PC2 (", pca.var.per[2], "%)")) +
+  theme_bw()
+```
+
+
+
+
+
+
+
+
+

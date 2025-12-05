@@ -1,0 +1,309 @@
+---
+title: "class09"
+author: "Ryan Bench (PID: A69038034)"
+format: pdf
+---
+
+##PDB Statistics
+
+```{r}
+library(readr)
+data <- read_csv("Data_Export_Summary.csv")
+data
+```
+
+```{r}
+n.total <- sum(data$Total)
+n.xray <- sum(data$`X-ray`)
+
+round(n.xray/n.total * 100, 2)
+
+n.em <- sum(data$EM)
+
+round(n.em/n.total * 100, 2)
+```
+
+
+>Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+81.43% of structures in PDB are solved by X-Ray, and 12.27% are made through EM
+
+```{r}
+n.protein <- c(176378, 20438, 12709, 342, 221, 83, 32)
+n.protein2 <- sum(n.protein)
+round(n.protein2/n.total)
+
+
+```
+
+
+>Q2: What proportion of structures in the PDB are protein only?
+
+```{r}
+library(ggplot2)
+
+# Can use the `` marks for columns with subtypes like "Molecular Weight"
+
+ggplot(data, aes(x = reorder(`Molecular Type`, Total), y = Total)) + geom_col()
+```
+
+>Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
+
+There are 4,866 structures in the search.
+
+##Visualizing structure data
+
+The Mol* viewer is embedded in many bioinformatics websites. The homepage is https://molstar.org/
+
+I can insert any figure or image file using markdown format
+
+![The HIV-Pr dimer with bound inhibitor](1HSG.png)
+![](1HSG 2.png)
+![](1HSG_molec.png)
+
+>Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+We see one atom (oxygen) to represent water in these structures because X-ray crystallography usually does not detect hydrogen because of low electron density.
+
+>Q5: There is a critical “conserved” water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+This water molecule is number 308.
+
+>Q6: Generate and save a figure clearly showing the two distinct chains of HIV-protease along with the ligand. You might also consider showing the catalytic residues ASP 25 in each chain and the critical water (we recommend “Ball & Stick” for these side-chains). Add this figure to your Quarto document.
+
+See 1HSG 2.png above.
+
+## Bio3D package for structural bioinformatics
+
+We can use the bio3d package to read and analyze biomolecular data in R:
+
+```{r}
+library(bio3d)
+hiv <- read.pdb("1hsg")
+hiv
+```
+
+>Q7: How many amino acid residues are there in this pdb object?
+
+There are 198 amino acid residues in this pdb object.
+
+>Q8: Name one of the two non-protein residues?
+
+Water is one of the two nin protein residues.
+
+>Q9: How many protein chains are in this structure?
+
+There are 2 chains in the structure.
+
+```{r}
+head(hiv$atom)
+```
+
+Let's get the sequence
+
+```{r}
+pdbseq( hiv )
+```
+
+Let's trim to chain A and get just it's sequence:
+
+```{r}
+chainA <- trim.pdb( hiv, chain = "A")
+chainA.seq <- pdbseq(chainA)
+```
+
+Let's blast 
+
+```{r blast_hiv, cache=TRUE}
+blast <- blast.pdb(chainA.seq)
+```
+
+```{r}
+head(blast$hit.tbl)
+```
+
+Plot a quick overview of blast results
+
+```{r}
+hits <- plot(blast)
+```
+
+```{r}
+hits$pdb.id
+```
+
+##Prediction of functional motions
+
+We can run an Normal Mode Analysis (NMA) to rpedict large scale motions/flexibility/dynamics of any biomolecule that we can read into R
+
+Let's look at ADK and chain A only!
+
+```{r}
+adk <- read.pdb("1ake")
+
+adk_A <- trim.pdb(adk, chain = "A")
+adk_A
+```
+
+```{r}
+m <- nma(adk_A)
+plot(m)
+```
+
+Let's write out a "trajectory" of predicted motion:
+
+```{r}
+mktrj(m, file = "adk_nma.pdb")
+```
+
+## PLay with 3D viewing in R
+
+We can use the new **bio3dview** package, which is not yet on CRAN, to render interactive 3D views in R and HTML quarto output reports
+
+To install from GitHub we can use the **pak** package.
+
+```{r}
+#library(bio3dview)
+
+#view.pdb(adk)
+```
+
+>Q10. Which of the packages above is found only on BioConductor and not CRAN?
+
+msa is found only on BioConductor and not CRAN
+
+>Q11. Which of the above packages is not found on BioConductor or CRAN?:
+
+The package bio3d-view is not found on BioConductir or CRAN.
+
+>Q12. True or False? Functions from the devtools package can be used to install packages from GitHub and BitBucket? 
+
+True
+
+##Search and retrieve ADK structures
+
+```{r}
+library(bio3d)
+aa <- get.seq("1ake_A")
+aa
+```
+
+>Q13. How many amino acids are in this sequence, i.e. how long is this sequence?
+
+There are 214 amino acids in this sequence.
+
+```{r, cache=TRUE}
+b <- blast.pdb(aa)
+```
+
+```{r}
+hits <- plot(b)
+```
+
+```{r}
+# List out some 'top hits'
+head(hits$pdb.id)
+```
+
+```{r}
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+```
+
+```{r}
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+```{r, cache = TRUE}
+
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+
+```
+
+```{r, fig.width=7, fig.height=6}
+ids <- basename.pdb(pdbs$id)
+
+plot(pdbs, labels=ids)
+```
+
+```{r}
+anno <- pdb.annotate(ids)
+unique(anno$source)
+```
+
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+
+```{r}
+rd <- rmsd(pdbs)
+
+hc.rd <- hclust(dist(rd))
+grps.rd <- cutree(hc.rd, k=3)
+
+plot(pc.xray, 1:2, col="grey50", bg=grps.rd, pch=21, cex=1)
+```
+
+
+##Comparative Analysis of protein structures
+
+Starting with a sequence or structure ID (accession number) let's run a complete analysis pipeline
+
+```{r}
+library(bio3d)
+
+id <- "1ake_A"
+
+aa <- get.seq(id)
+aa
+```
+
+```{r, cache = TRUE}
+blast <- blast.pdb(aa)
+
+hits <- plot(blast)
+```
+
+```{r}
+hits$pdb.id
+```
+
+Download all these "hits" that are similar to our starting id sequence
+
+```{r}
+# Download releated PDB files
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+```{r}
+# Align releated PDBs
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+```
+
+```{r}
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+```
+
+```{r}
+pc.xray <- pca(pdbs)
+plot(pc.xray)
+```
+
+```{r}
+plot(pc.xray, 1:2)
+```
+
+```{r}
+mktrj(pc.xray, file = "pca_results.pdb")
+```
+
+```{r}
+library(bio3dview)
+
+view.pca(pc.xray)
+```
+
+
+install.packages("BiocManager")
+BiocManager::install("msa")
