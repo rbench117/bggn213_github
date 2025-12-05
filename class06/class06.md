@@ -41,9 +41,9 @@ The `sample` function can be helpful here
 sample(c("A", "C", "T", "G"), size=50, replace = TRUE)
 ```
 
-     [1] "T" "A" "T" "G" "C" "C" "C" "T" "G" "A" "T" "A" "C" "C" "A" "G" "G" "G" "T"
-    [20] "A" "C" "T" "G" "T" "C" "G" "G" "A" "C" "T" "C" "A" "G" "G" "C" "T" "G" "G"
-    [39] "G" "G" "A" "C" "C" "T" "G" "A" "C" "G" "A" "G"
+     [1] "A" "C" "A" "T" "T" "T" "A" "G" "C" "T" "A" "C" "C" "C" "G" "C" "T" "T" "A"
+    [20] "T" "T" "T" "G" "G" "G" "C" "A" "T" "C" "A" "A" "G" "A" "T" "A" "C" "A" "T"
+    [39] "C" "G" "C" "A" "T" "A" "G" "C" "C" "C" "A" "C"
 
 I want a 1 element long character vector that looks like this “CACAGC”
 not “C” “A” “C” “A” “G” “C”
@@ -53,7 +53,7 @@ v <- sample(c("A", "C", "T", "G"), size=50, replace = TRUE)
 paste(v, collapse = "")
 ```
 
-    [1] "GACTGCAAGGAATAACGCTCCGTTCCTCTGTACCCCATCGCTAGTAGCCG"
+    [1] "GTCTGCAAGTGCCGATCGCTTTTAAGCCTCCTTGCGTTCGAATGCTCGGC"
 
 ``` r
 generate_DNA <- function(size) {
@@ -68,7 +68,7 @@ Test it:
 generate_DNA(100)
 ```
 
-    [1] "TATTTGTCGACCTCCTGGTGGGACCACTACTTTCTTGTTGGATAATACTACTGTAGATACTCGCATTATCAGTCCGTCTGAGAAGGCCGTGTGCACTGGA"
+    [1] "GCGTGGGAGAATCTGAGATATGTATACAGATGCGCGCGAAGACCTTTATTCTCTTTGGATCTAGGCTCGTTGTTCGGAGTACCGGGAGGGGCCGTCGGGG"
 
 ``` r
 fasta <- FALSE
@@ -101,16 +101,16 @@ generate_fasta <- function(size = 50, fasta = TRUE) {
 generate_fasta(60, fasta = TRUE)
 ```
 
-    [1] "TTTGTTTTCACAGACTCGTATCCCTGCTGGCAGCCCAGGACAAGAAACCTGGTCGCTCGG"
+    [1] "CAATAAGCGAGAAACAGGTACTCCGACATTTGTCTGTCGATGAGAGGGCCGCAGCGCTAT"
 
 ``` r
 generate_fasta(60, fasta = FALSE)
 ```
 
-     [1] "T" "G" "G" "G" "G" "C" "C" "A" "C" "C" "C" "A" "C" "C" "G" "A" "A" "T" "A"
-    [20] "C" "A" "G" "C" "C" "T" "G" "T" "G" "A" "T" "G" "T" "C" "T" "T" "C" "C" "G"
-    [39] "T" "A" "G" "A" "C" "A" "A" "G" "G" "T" "A" "G" "G" "G" "T" "C" "A" "C" "T"
-    [58] "C" "C" "G"
+     [1] "G" "A" "A" "A" "C" "C" "T" "C" "A" "A" "T" "A" "C" "C" "C" "C" "C" "A" "G"
+    [20] "T" "G" "C" "T" "C" "A" "A" "G" "C" "G" "T" "T" "T" "T" "T" "T" "C" "C" "A"
+    [39] "G" "G" "G" "C" "G" "T" "G" "T" "C" "C" "G" "G" "A" "T" "A" "A" "A" "G" "C"
+    [58] "T" "T" "C"
 
 ## A protein generating function
 
@@ -132,7 +132,7 @@ generate_protein <- function(size = 50, fasta = TRUE) {
 generate_protein(60)
 ```
 
-    [1] "VIHVVKVAWSYFIANHINYANLNMEFRKCKMVFYECLCCATLTQGNDEWLGFPTTRSPYN"
+    [1] "KTDWYKIAWNYMAGWRMIVFNELWWPGVYTYWYGDENPRCHSRKTLDLTMIMYPDWKDSV"
 
 Use our new “generate_protein()” function to make random protein
 sequences of length 6-12 (i.e. one length 6, one length 7, etc up to
@@ -144,43 +144,43 @@ This can be done via “brute force”
 generate_protein(6)
 ```
 
-    [1] "KTLDNL"
+    [1] "TMAHWY"
 
 ``` r
 generate_protein(7)
 ```
 
-    [1] "YLTFSQY"
+    [1] "YTECSDQ"
 
 ``` r
 generate_protein(8)
 ```
 
-    [1] "EGTLLMAC"
+    [1] "HPPDKRYV"
 
 ``` r
 generate_protein(9)
 ```
 
-    [1] "LFGKCIHFF"
+    [1] "YQIMFLHYQ"
 
 ``` r
 generate_protein(10)
 ```
 
-    [1] "KSHYREPPVT"
+    [1] "FMIYTKWHQQ"
 
 ``` r
 generate_protein(11)
 ```
 
-    [1] "RISFHPFRCYF"
+    [1] "QINSPILEMIS"
 
 ``` r
 generate_protein(12)
 ```
 
-    [1] "IKKWLIKAVHQR"
+    [1] "WRNYSDRRCGKC"
 
 A second way to do this is to use the `for()` loop:
 
@@ -201,23 +201,23 @@ for(i in lengths) {
 ```
 
     >6
-    TCKDVK
+    LVYPWW
     >7
-    YQDQMHL
+    KNQFMHW
     >8
-    IVTILEHP
+    QFWFLQNE
     >9
-    TKSGVQPFT
+    NFPITKAIC
     >10
-    IDLESDWLCV
+    TDSRTTFLHL
     >11
-    ACVHSNQRVRL
+    IWAKNHMTTVI
     >12
-    CSIESKCGLHHQ
+    YSQQMGEKDIEG
 
 ``` r
 sapply(6:12, generate_protein)
 ```
 
-    [1] "AHFWHM"       "KGVDEHF"      "LRWSPANA"     "AWFFWIHTH"    "VLDWNMYQAR"  
-    [6] "LKWYQITFWQF"  "KFNQGSQNGVHR"
+    [1] "KVMRHA"       "TWCCYTK"      "DFSRLWQD"     "MASGHWFQQ"    "MQAPVIHDKR"  
+    [6] "LSVPTFMVGDG"  "WVLWRKFFWYTL"
