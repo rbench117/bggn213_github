@@ -16,6 +16,6 @@ Class work for bioinformatics class [BGGN213 at UC San Diego](https://rbench117.
 - Class 13: [RNA-Seq analysis mini-project]()
 - Class 14: [Hands-on with Git and GitHub]()
 - Class 15: [Essential UNIX for bioinformatics]()
-- Class 16: [Analyzing sequencing data in the cloud]()
+- Class 16: [Analyzing sequencing data in the cloud](class16/class16.md)
 - Class 17: [Genome informatics]()
 - Class 19: [Mini Project: Investigating Pertussis Resurgence]()
