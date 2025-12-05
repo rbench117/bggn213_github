@@ -1,0 +1,160 @@
+---
+title: "find_a_gene"
+format: html
+---
+
+```{r}
+library(bio3d)
+aln <- read.fasta("muscle5-I20251128-231735-0628-68336244-p2m.aln-fasta.fst")
+aln
+```
+
+```{r}
+iden <- seqidentity(aln)
+
+dim(iden)       
+head(iden)      
+
+```
+
+```{r}
+iden_pct <- iden * 100
+```
+
+```{r}
+aln$id <- c(
+  "Anarrhichthys ocelatus",
+  "Oncorhynchus mykiss",
+  "Danio rerio",
+  "Oncorhynchus kisutch",
+  "Canis lupus familiaris",
+  "Homo sapiens",
+  "Panther leo"
+)
+
+#Corret order: 
+#Panther leo
+#Homo sapiens
+#Canis lupus familiaris
+#Oncorhynchus mykiss
+#Danio rerio
+#Oncorhynchus kisutch
+#Anarrhichthys ocelatus
+
+#Actual Order:
+#Anarrhichthys ocelatus
+#Oncorhynchus mykiss
+#Danio rerio
+#Oncorhynchus kisutch
+#Canis lupus familiaris
+#Homo sapiens
+#Panther leo
+
+
+
+cols <- colorRampPalette(c("white", "yellow", "orange", "red"))(50)
+
+labs <- aln$id
+
+par(mar = c(10, 10, 2, 2))
+
+heatmap(iden,
+        Rowv = NA, Colv = NA,      
+        symm = TRUE,
+        col = cols,
+        margins = c(10, 10),       
+        labRow = labs,
+        labCol = labs)
+
+```
+
+```{r}
+png("seq_identity_heatmap.png", width = 2000, height = 2000, res = 300)
+par(mar = c(12, 12, 3, 3))
+
+heatmap(iden,
+        Rowv = NA, Colv = NA,
+        symm = TRUE,
+        col = cols,
+        margins = c(12, 12))
+
+dev.off()
+```
+
+```{r}
+library(bio3d)
+
+# If you don't already have this:
+iden <- seqidentity(aln)
+
+# Ignore self-identity (1.0) on the diagonal
+diag(iden) <- NA
+
+# For each sequence (row), get the maximum identity to any other sequence
+row_max <- apply(iden, 1, max, na.rm = TRUE)
+
+# Index of the "best" sequence
+best_idx <- which.max(row_max)
+best_idx
+aln$id[best_idx]   # name of the chosen sequence
+
+```
+
+```{r}
+best_seq_vec <- aln$ali[best_idx, ]         # vector of residues with "-"
+best_seq <- paste(best_seq_vec, collapse = "")
+best_seq <- gsub("-", "", best_seq)        # remove gaps
+best_seq                                   # this goes into blast.pdb()
+
+
+# Using the best sequence from Option A:
+b <- blast.pdb(best_seq)   # or blast.pdb(cons_seq) if you use consensus
+
+# Look at the hits table:
+head(b$hit.tbl)
+
+```
+```{r}
+hits <- b$hit.tbl
+
+# Extract structure ID (first 4 characters of pdb.id)
+hits$structureId <- substr(hits$pdb.id, 1, 4)
+
+# Sort by Evalue (ascending), then by identity (descending)
+hits <- hits[order(hits$evalue, -hits$identity), ]
+
+# Keep only the first occurrence of each structureId
+unique_hits <- hits[!duplicated(hits$structureId), ]
+
+# Take the top 3 unique structures
+top3 <- unique_hits[1:3, ]
+top3[, c("pdb.id", "structureId", "evalue", "identity")]
+
+```
+
+```{r}
+ann <- pdb.annotate(top3$structureId)
+nrow(ann)   # probably > 3
+
+ann3 <- ann[match(top3$structureId, ann$structureId), ]
+
+nrow(ann3)
+
+summary_tbl <- data.frame(
+  structureId = top3$structureId,
+  chain       = top3$pdb.id,
+  evalue      = top3$evalue,
+  identity    = top3$identity,
+  method      = ann3$experimentalTechnique,
+  resolution  = ann3$resolution,
+  source      = ann3$source
+)
+
+summary_tbl
+
+
+```
+
+
+
+

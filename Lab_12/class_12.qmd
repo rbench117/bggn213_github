@@ -1,0 +1,401 @@
+---
+title: "lab_12_RNASeq"
+author: "Ryan Bench (PID: A69038034)"
+format: pdf
+toc: TRUE
+---
+
+## Background
+
+Today we will analyze some RNASeq data from Himes et al. on the effects of a common steroid (dexmethasome, also called "dex") on airway smooth muscle cells (ASMs).
+
+For this analysis we need two main inputs 
+
+- `countData`: a table of **counts** per gene (in rows) across experiments (in columns)
+- `colData`: **metadata** about the design of the experiments. The rows match the columns in `countData`
+
+## Data Imports
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <-  read.csv("airway_metadata.csv")
+```
+
+Let's have a wee peak at our `counts`
+
+```{r}
+head(counts)
+```
+
+and the `metadata`
+
+```{r}
+head(metadata)
+```
+
+> Q1. How many "genes" are in this dataset?
+
+```{r}
+nrow(counts)
+```
+
+> Q2. How many experiments (i.e. columns in `counts` or rows in `metadata`) are there?
+
+```{r}
+ncol(counts)
+```
+
+> Q3. How many "control" experiments are there in the dataset?
+
+```{r}
+sum(metadata$dex == "control")
+```
+## Toy analysis example
+
+1. Extract the "control" columns from `counts`
+2. Calculate the mean value for each gene in these "control" columns
+
+3-4. Do the same for the "treated" columns.
+5. Compare these mean values for each gene.
+
+Step 1.
+```{r}
+control.inds <- metadata$dex == "control"
+control.counts <- counts[ ,control.inds]
+```
+
+Step 2.
+```{r}
+control.mean <- rowMeans(control.counts)
+```
+
+Step 3-4
+```{r}
+treated.inds <- metadata$dex == "treated"
+treated.counts <- counts[ ,treated.inds]
+```
+
+```{r}
+treated.mean <- rowMeans(treated.counts)
+```
+
+For ease of plotting and bookeeping, we can store these together in one data frame called `meancounts`
+
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+head(meancounts)
+```
+
+```{r}
+library(ggplot2)
+ggplot(meancounts) + 
+  aes(x = control.mean, y = treated.mean) +
+  geom_point(alpha = 0.2) +
+  scale_x_log10() +
+  scale_y_log10()
+```
+
+This data is screaming to be log transformed
+
+Treated/control is fold change
+
+We use "fold-change" as a way to compare 
+
+Log2 of 1 is 0
+
+```{r}
+#treated/control
+log2(10/10)
+log2(20/10)
+log2(10/20)
+log2(40/10)
+```
+
+```{r}
+meancounts$log2fc <- log2(meancounts$treated.mean/meancounts$control.mean)
+head(meancounts)
+```
+
+A common "rule-of-thumb" threshold for calling something "up" regulated is a log2 fold-change of +2 or greater, for down regulated -2 or less. 
+
+```{r}
+nonzero.inds <- rowSums(counts) !=0
+mycounts <- meancounts[nonzero.inds, ]
+
+#Alternate method find zero values
+```
+
+```{r}
+zero.inds <- which(meancounts[,1:2] == 0, arr.ind=TRUE)[,1]
+mygenes <- meancounts[-zero.inds,]
+```
+
+
+> Q3. How mnay genes are "up" regulated at the +2 log2FC threhsold?
+
+```{r}
+sum(mygenes$log2fc >= 2)
+```
+
+
+> Q4. How many genes are "down" regulated (at the -2 log2FC threshold)?
+
+```{r}
+sum(mygenes$log2fc <= -2)
+```
+> Q5 (a). Create a scatter plot showing the mean of the treated samples against the mean of the control samples. Your plot should look something like the following.
+
+```{r}
+ggplot(meancounts) + 
+  aes(x = control.mean, y = treated.mean) +
+  geom_point() 
+```
+
+> Q5 (b).You could also use the ggplot2 package to make this figure producing the plot below. What geom_?() function would you use for this plot?
+
+I would adjust the alpha level (transparency) to 0.2.
+
+```{r}
+library(ggplot2)
+ggplot(meancounts) + 
+  aes(x = control.mean, y = treated.mean) +
+  geom_point(alpha = 0.2) 
+```
+> Q6. Try plotting both axes on a log scale. What is the argument to plot() that allows you to do this?
+
+```{r}
+library(ggplot2)
+ggplot(meancounts) + 
+  aes(x = control.mean, y = treated.mean) +
+  geom_point(alpha = 0.2) +
+  scale_x_log10() +
+  scale_y_log10()
+```
+> Q8. Using the up.ind vector above can you determine how many up regulated genes we have at the greater than 2 fc level?
+
+```{r}
+sum(mygenes$log2fc >= 2)
+
+```
+
+>Q9. Using the down.ind vector above can you determine how many down regulated genes we have at the greater than 2 fc level?
+
+```{r}
+sum(mygenes$log2fc <= -2)
+```
+
+
+## DESeq Analysis
+
+Let's do this with DESeq2 and put some stats behind these numbers
+
+```{r, message=FALSE}
+library(DESeq2)
+
+```
+
+SESeq wants three things for analysis, countData, colData, and design.
+
+```{r}
+dds <- DESeqDataSetFromMatrix(counts, 
+                       colData = metadata,
+                       design = ~dex)
+```
+
+The main function in the SESeq package to run analysis is called `DESeq()`.
+
+```{r}
+dds <- DESeq(dds)
+```
+
+Get the results out of this DESeq object with the function `results()`
+
+```{r}
+res <- results(dds)
+head(res)
+```
+
+## Volcano  Plot
+
+This is a plot of log2FC( vs adjusted p-value)
+
+```{r}
+plot(res$log2FoldChange, -log(res$padj))
+abline(v=c(-2, 2), col="red")
+abline(h=-log(0.05), col="red")
+```
+
+## A nicer ggplot volcano plot
+
+```{r}
+mycols <- rep("gray", nrow(res))
+mycols[ abs(res$log2FoldChange) > 2] <- "blue"
+mycols[ res$padj >= 0.05 ] <- "gray"
+
+ggplot(res, aes(x = log2FoldChange, y = -log(padj))) +
+  geom_point(col=mycols) +
+  geom_vline(xintercept = c(-2, 2), color = "red") +
+  geom_hline(yintercept = -log(0.05), color = "red")
+```
+EnhancedVolcano would not work, I was troubleshooting for a very long time and it still would not work
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+head(kegg.sets.hs, 2)
+```
+
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+```{r}
+attributes(keggres)
+```
+
+```{r}
+head(keggres$less, 3)
+```
+
+For some reason, I could not get this command to give me the right results either.
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa05310")
+```
+
+```{r}
+pathview(gene.data=foldchanges, pathway.id="hsa05310", kegg.native=FALSE)
+```
+
+
+## Save our results
+
+```{r}
+write.csv(res, file = "myresults.csv")
+```
+
+
+##Add Annotation Data
+
+We need to add gene symbols, gene names and other database IDs to make my results useful for further analysis
+
+```{r}
+head(res)
+```
+
+We have ENSEBLE database IDs in our `res` object
+
+```{r}
+head(rownames (res) )
+```
+
+We can use the `mapIds()` function from bioconductor to help us.
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+Let's see what database id formats we can translate between
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+```{r}
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",        
+                     column="SYMBOL")
+head(res$symbol)
+```
+
+Add `GENENAME` 
+then `ENTREZ`
+
+
+```{r}
+res$genename <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",        
+                     column="SYMBOL")
+
+```
+
+```{r}
+head(res)
+```
+
+```{r}
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys=row.names(res), 
+                     keytype="ENSEMBL",        
+                     column="ENTREZID")
+```
+
+```{r}
+head(res)
+```
+
+## Save my annotated results
+
+```{r}
+write.csv(res, file="myresults_annotated.csv")
+```
+
+
+
+## Pathway Analysis 
+
+We will use **gage** function from bioconductor. 
+
+```{r}
+library(pathview)
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+head(kegg.sets.hs, 2)
+```
+What **gage** wants as input is a simple named vector of importance i.e. a vector with labeled fold-changes 
+
+```{r}
+foldchanges <- res$log2FoldChange
+names(foldchanges) <- res$entrez
+head(foldchanges)
+```
+
+Run gage analysis:
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+What is in the results:
+```{r}
+attributes(keggres)
+```
+
+```{r}
+head(keggres$less, 5)
+```
+Let's look at just one of these hsa05310
+
+```{r}
+library(pathview)
+
+pathview(gene.data=foldchanges, pathway.id="hsa05310")
+```
+
+Insert figure for this pathway
+
+![Asthma pathway from KEGG with my differentially expressed genes highlighted](hsa05310.pathview.png)
